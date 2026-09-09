@@ -88,7 +88,7 @@ func matchPwrStatus(pwr byte) string {
 	case PwrBooting.Equal(pwr):
 		return "Booting"
 	default:
-		return "UNKNOWN"
+		return "Booting"
 	}
 }
 
