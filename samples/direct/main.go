@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	api "github.com/SayukiDev/BasesationApiGo"
+	api "github.com/SayukiDev/BasestationApiGo"
 )
 
 func main() {

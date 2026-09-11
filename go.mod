@@ -1,4 +1,4 @@
-module github.com/SayukiDev/BasesationApiGo
+module github.com/SayukiDev/BasestationApiGo
 
 go 1.26
 

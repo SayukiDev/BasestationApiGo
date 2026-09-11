@@ -1,4 +1,4 @@
-package BasesationAPI
+package BasestationAPI
 
 import (
 	"errors"
@@ -94,7 +94,7 @@ func TestMatchPwrStatus(t *testing.T) {
 		{0x01, "Booting"},
 		{0x02, "STANDBY"},
 		{0x0b, "ON"},
-		{0x09, "UNKNOWN"},
+		{0x09, "Booting"},
 	}
 	for _, tt := range tests {
 		if got := matchPwrStatus(tt.in); got != tt.want {

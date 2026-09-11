@@ -1,4 +1,4 @@
-package BasesationAPI
+package BasestationAPI
 
 import (
 	"tinygo.org/x/bluetooth"

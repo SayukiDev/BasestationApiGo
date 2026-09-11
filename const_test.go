@@ -1,4 +1,4 @@
-package BasesationAPI
+package BasestationAPI
 
 import (
 	"bytes"

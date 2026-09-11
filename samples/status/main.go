@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	api "github.com/SayukiDev/BasesationApiGo"
+	api "github.com/SayukiDev/BasestationApiGo"
 )
 
 func main() {
