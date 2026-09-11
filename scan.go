@@ -100,7 +100,7 @@ func Scanning() error {
 
 func ScanningWithTimeout(timeout time.Duration) error {
 	errCh := make(chan error, 1)
-	go func() { errCh <- Scanning() }()
+	errCh <- Scanning()
 
 	select {
 	case err := <-errCh:
