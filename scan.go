@@ -37,6 +37,7 @@ var (
 	scanned            bool
 	connected          []bluetooth.Device
 	onScanDeviceUpdate = func(device DeviceInfo) {}
+	onScanDeviceFailed = func(err error) {}
 )
 
 var (
@@ -67,27 +68,34 @@ func Scanning() error {
 		return err
 	}
 
-	err := adapter.Scan(func(a *bluetooth.Adapter, result bluetooth.ScanResult) {
-		if !isBaseStationName(result.LocalName()) {
-			return
-		}
+	go func() {
+		defer func() {
+			lock.Lock()
+			scanning = false
+			lock.Unlock()
+		}()
+		err := adapter.Scan(func(a *bluetooth.Adapter, result bluetooth.ScanResult) {
+			if !isBaseStationName(result.LocalName()) {
+				return
+			}
+			lock.Lock()
+			d := DeviceInfo{
+				Addr: result.Address,
+				Name: result.LocalName(),
+				RSSI: result.RSSI,
+			}
+			devices[result.Address.String()] = d
+			lock.Unlock()
+			onScanDeviceUpdate(d)
+		})
 		lock.Lock()
-		devices[result.Address.String()] = DeviceInfo{
-			Addr: result.Address,
-			Name: result.LocalName(),
-			RSSI: result.RSSI,
-		}
-		onScanDeviceUpdate(devices[result.Address.String()])
-		lock.Unlock()
-	})
-
-	lock.Lock()
-	scanning = false
-	if err == nil {
 		scanned = true
-	}
-	lock.Unlock()
-	return err
+		lock.Unlock()
+		if err != nil {
+			onScanDeviceFailed(err)
+		}
+	}()
+	return nil
 }
 
 func ScanningWithTimeout(timeout time.Duration) error {
@@ -118,6 +126,12 @@ func StopScanning() error {
 func SetOnScanDeviceUpdate(f func(device DeviceInfo)) {
 	lock.Lock()
 	onScanDeviceUpdate = f
+	lock.Unlock()
+}
+
+func SetOnScanDeviceFailed(f func(err error)) {
+	lock.Lock()
+	onScanDeviceFailed = f
 	lock.Unlock()
 }
 
