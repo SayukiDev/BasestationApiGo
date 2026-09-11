@@ -31,11 +31,12 @@ type DeviceInfo struct {
 }
 
 var (
-	devices   map[string]DeviceInfo
-	lock      sync.RWMutex
-	scanning  bool
-	scanned   bool
-	connected []bluetooth.Device
+	devices            map[string]DeviceInfo
+	lock               sync.RWMutex
+	scanning           bool
+	scanned            bool
+	connected          []bluetooth.Device
+	onScanDeviceUpdate = func(device DeviceInfo) {}
 )
 
 var (
@@ -48,6 +49,7 @@ func isBaseStationName(name string) bool {
 	return strings.HasPrefix(strings.ToLower(name), NamePrefix)
 }
 
+// Scanning is no synchronized.if you want to stop scanning, pls call StopScanning()
 func Scanning() error {
 	lock.Lock()
 	if scanning {
@@ -75,6 +77,7 @@ func Scanning() error {
 			Name: result.LocalName(),
 			RSSI: result.RSSI,
 		}
+		onScanDeviceUpdate(devices[result.Address.String()])
 		lock.Unlock()
 	})
 
@@ -110,6 +113,12 @@ func StopScanning() error {
 		return nil
 	}
 	return adapter.StopScan()
+}
+
+func SetOnScanDeviceUpdate(f func(device DeviceInfo)) {
+	lock.Lock()
+	onScanDeviceUpdate = f
+	lock.Unlock()
 }
 
 type PublicDeviceInfo struct {

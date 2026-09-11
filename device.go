@@ -120,6 +120,37 @@ func GetPowerState() (map[string]string, error) {
 	return states, errors.Join(errs...)
 }
 
+func GetPowerStateSome(addrs ...string) (map[string]string, error) {
+	if err := tryConnect(); err != nil {
+		return nil, err
+	}
+	states := make(map[string]string, len(addrs))
+	var errs []error
+	for _, addr := range addrs {
+		d, ok := getConnectedDeviceOne(addr)
+		if !ok {
+			errs = append(errs, fmt.Errorf("%s: %w", addr, ErrDeviceNotFound))
+			continue
+		}
+		c, err := getCharacteristic(d, ServiceUUID, PwrCharacteristicUUID)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("%s: %w", addr, err))
+			continue
+		}
+		val, err := readValue(c, 1)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("%s: %w", addr, err))
+			continue
+		}
+		if len(val) == 0 {
+			errs = append(errs, fmt.Errorf("%s: empty power value", addr))
+			continue
+		}
+		states[addr] = matchPwrStatus(val[0])
+	}
+	return states, errors.Join(errs...)
+}
+
 func writePower(d bluetooth.Device, value WriteablePwrStatus) error {
 	c, err := getCharacteristic(d, ServiceUUID, PwrCharacteristicUUID)
 	if err != nil {
@@ -137,6 +168,24 @@ func SetPower(value WriteablePwrStatus) error {
 	for _, d := range getConnectedDevices() {
 		if err := writePower(d, value); err != nil {
 			errs = append(errs, fmt.Errorf("%s: %w", d.Address.String(), err))
+		}
+	}
+	return errors.Join(errs...)
+}
+
+func SetPowerSome(value WriteablePwrStatus, addrs ...string) error {
+	if err := tryConnect(); err != nil {
+		return err
+	}
+	var errs []error
+	for _, addr := range addrs {
+		d, ok := getConnectedDeviceOne(addr)
+		if !ok {
+			errs = append(errs, fmt.Errorf("%s: %w", addr, ErrDeviceNotFound))
+			continue
+		}
+		if err := writePower(d, value); err != nil {
+			errs = append(errs, fmt.Errorf("%s: %w", addr, err))
 		}
 	}
 	return errors.Join(errs...)
