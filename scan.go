@@ -184,6 +184,8 @@ func resolveAddresses(targets []string) ([]bluetooth.Address, []error) {
 	return addrs, errs
 }
 
+var connectChangedHandler func(device bluetooth.Device, c bool)
+
 func connect(targets []string) error {
 	if len(targets) == 0 {
 		return ErrNoDevice
@@ -194,6 +196,25 @@ func connect(targets []string) error {
 	if already {
 		return ErrAlreadyConnected
 	}
+
+	adapter.SetConnectHandler(func(device bluetooth.Device, c bool) {
+		if c {
+			return
+		}
+		lock.Lock()
+		defer lock.Unlock()
+		index := -1
+		for i, d := range connected {
+			if d.Address.String() == device.Address.String() {
+				index = i
+				break
+			}
+		}
+		if index != -1 {
+			connected = slices.Delete(connected, index, index+1)
+		}
+		connectChangedHandler(device, c)
+	})
 
 	addrs, errs := resolveAddresses(targets)
 	if len(addrs) == 0 {
@@ -238,7 +259,12 @@ func getConnectedDeviceOne(addr string) (bluetooth.Device, bool) {
 	return bluetooth.Device{}, false
 }
 
-func disconnect() error {
+func disconnect() (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("%v", r)
+		}
+	}()
 	lock.Lock()
 	conns := connected
 	connected = nil
